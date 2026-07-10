@@ -2,7 +2,6 @@ import streamlit as st
 import joblib
 import xgboost as xgb
 import plotly.express as px
-import numpy as np
 import pandas as pd
 
 
@@ -17,29 +16,48 @@ st.set_page_config(
 
 
 # ============================================================
-# 2. Feature names
-# The order must remain consistent with the training dataset.
+# 2. Model feature names
+# These names must exactly match the training dataset.
+# Do not translate or modify them.
 # ============================================================
-feature_names = [
-    "Grade Level",
-    "Family Cohesion",
-    "Homesickness-Related Distress",
-    "Satisfaction with Academic Performance",
-    "Richness of Extracurricular Life",
-    "Class Atmosphere",
-    "Satisfaction with Major",
-    "Satisfaction with Awards and Honors",
-    "Regular Diet",
-    "Insomnia Severity"
+model_feature_names = [
+    "X3_grade",
+    "X14_family cohesion",
+    "X16_anxiety about leaving home",
+    "X18_academic satisfaction",
+    "X20_after-school activity",
+    "X23_class atmosphere",
+    "X24_professional preference",
+    "X25_award evaluation satisfaction",
+    "X27_eat regularly",
+    "X37_insomnia condition"
 ]
 
 
 # ============================================================
-# 3. Response options and numerical coding
-# The numerical values must remain consistent with model training.
+# 3. English display names
+# These names are only displayed on the webpage.
+# ============================================================
+display_names = {
+    "X3_grade": "Grade Level",
+    "X14_family cohesion": "Family Cohesion",
+    "X16_anxiety about leaving home": "Homesickness-Related Distress",
+    "X18_academic satisfaction": "Satisfaction with Academic Performance",
+    "X20_after-school activity": "Richness of Extracurricular Life",
+    "X23_class atmosphere": "Class Atmosphere",
+    "X24_professional preference": "Satisfaction with Major",
+    "X25_award evaluation satisfaction": "Satisfaction with Awards and Honors",
+    "X27_eat regularly": "Regular Diet",
+    "X37_insomnia condition": "Insomnia Severity"
+}
+
+
+# ============================================================
+# 4. Response options and numerical coding
+# The numerical values must match the coding used in training.
 # ============================================================
 options_dict = {
-    "Grade Level": [
+    "X3_grade": [
         ("Freshman", 1),
         ("Sophomore", 2),
         ("Junior", 3),
@@ -47,7 +65,7 @@ options_dict = {
         ("Fifth-Year Student", 5)
     ],
 
-    "Family Cohesion": [
+    "X14_family cohesion": [
         ("Very Close", 1),
         ("Relatively Close", 2),
         ("Neutral", 3),
@@ -55,14 +73,14 @@ options_dict = {
         ("Very Distant", 5)
     ],
 
-    "Homesickness-Related Distress": [
+    "X16_anxiety about leaving home": [
         ("None", 1),
         ("Mild", 2),
         ("Moderate", 3),
         ("Severe", 4)
     ],
 
-    "Satisfaction with Academic Performance": [
+    "X18_academic satisfaction": [
         ("Very Satisfied", 1),
         ("Satisfied", 2),
         ("Neutral", 3),
@@ -70,14 +88,14 @@ options_dict = {
         ("Very Dissatisfied", 5)
     ],
 
-    "Richness of Extracurricular Life": [
+    "X20_after-school activity": [
         ("Very Rich", 1),
         ("Relatively Rich", 2),
         ("Average", 3),
         ("Not Rich", 4)
     ],
 
-    "Class Atmosphere": [
+    "X23_class atmosphere": [
         ("Positive and Motivating", 1),
         ("Harmonious and Supportive", 2),
         ("Average", 3),
@@ -85,7 +103,7 @@ options_dict = {
         ("Competitive and Conflict-Ridden", 5)
     ],
 
-    "Satisfaction with Major": [
+    "X24_professional preference": [
         ("Like It Very Much", 1),
         ("Like It", 2),
         ("Neutral", 3),
@@ -93,7 +111,7 @@ options_dict = {
         ("Dislike It Very Much", 5)
     ],
 
-    "Satisfaction with Awards and Honors": [
+    "X25_award evaluation satisfaction": [
         ("Very Satisfied", 1),
         ("Satisfied", 2),
         ("Neutral", 3),
@@ -101,12 +119,12 @@ options_dict = {
         ("Very Dissatisfied", 5)
     ],
 
-    "Regular Diet": [
+    "X27_eat regularly": [
         ("No", 0),
         ("Yes", 1)
     ],
 
-    "Insomnia Severity": [
+    "X37_insomnia condition": [
         ("None", 1),
         ("Moderate", 2),
         ("Mild", 3),
@@ -116,7 +134,7 @@ options_dict = {
 
 
 # ============================================================
-# 4. Page title and introduction
+# 5. Page title and introduction
 # ============================================================
 st.title(
     "Early Risk Prediction Model for Depressive Symptoms "
@@ -138,7 +156,7 @@ Please select the responses that best reflect your current situation.
 
 
 # ============================================================
-# 5. Load the trained model
+# 6. Load the trained model
 # ============================================================
 @st.cache_resource
 def load_model():
@@ -172,7 +190,7 @@ model = load_model()
 
 
 # ============================================================
-# 6. Assessment form
+# 7. Assessment form
 # ============================================================
 with st.form("student_depressive_symptoms_form"):
 
@@ -188,41 +206,39 @@ with st.form("student_depressive_symptoms_form"):
     inputs = {}
 
     with col1:
-        inputs["Grade Level"] = st.selectbox(
+        inputs["X3_grade"] = st.selectbox(
             "1. What is your current grade level?",
-            [option[0] for option in options_dict["Grade Level"]],
+            [item[0] for item in options_dict["X3_grade"]],
             help="Select your current year of university study."
         )
 
-        inputs["Family Cohesion"] = st.selectbox(
+        inputs["X14_family cohesion"] = st.selectbox(
             "2. How would you describe the level of cohesion within your family?",
-            [option[0] for option in options_dict["Family Cohesion"]],
+            [item[0] for item in options_dict["X14_family cohesion"]],
             help=(
-                "Consider the emotional closeness, communication, "
-                "and support among your family members."
+                "Consider emotional closeness, communication, and support "
+                "among your family members."
             )
         )
 
-        inputs["Homesickness-Related Distress"] = st.selectbox(
+        inputs["X16_anxiety about leaving home"] = st.selectbox(
             "3. How distressed are you because you have been away "
             "from your family for an extended period?",
             [
-                option[0]
-                for option in options_dict["Homesickness-Related Distress"]
+                item[0]
+                for item in options_dict["X16_anxiety about leaving home"]
             ],
             help=(
-                "Evaluate the emotional distress associated with "
-                "being separated from your family."
+                "Evaluate the emotional distress associated with being "
+                "separated from your family."
             )
         )
 
-        inputs["Satisfaction with Academic Performance"] = st.selectbox(
+        inputs["X18_academic satisfaction"] = st.selectbox(
             "4. How satisfied are you with your current academic performance?",
             [
-                option[0]
-                for option in options_dict[
-                    "Satisfaction with Academic Performance"
-                ]
+                item[0]
+                for item in options_dict["X18_academic satisfaction"]
             ],
             help=(
                 "Evaluate your satisfaction with your current "
@@ -230,13 +246,11 @@ with st.form("student_depressive_symptoms_form"):
             )
         )
 
-        inputs["Richness of Extracurricular Life"] = st.selectbox(
+        inputs["X20_after-school activity"] = st.selectbox(
             "5. How rich and varied is your extracurricular life?",
             [
-                option[0]
-                for option in options_dict[
-                    "Richness of Extracurricular Life"
-                ]
+                item[0]
+                for item in options_dict["X20_after-school activity"]
             ],
             help=(
                 "Consider your participation in recreational, social, "
@@ -245,20 +259,23 @@ with st.form("student_depressive_symptoms_form"):
         )
 
     with col2:
-        inputs["Class Atmosphere"] = st.selectbox(
+        inputs["X23_class atmosphere"] = st.selectbox(
             "6. How would you describe the overall atmosphere in your class?",
-            [option[0] for option in options_dict["Class Atmosphere"]],
+            [
+                item[0]
+                for item in options_dict["X23_class atmosphere"]
+            ],
             help=(
                 "Evaluate the interpersonal, motivational, and learning "
                 "environment in your class."
             )
         )
 
-        inputs["Satisfaction with Major"] = st.selectbox(
+        inputs["X24_professional preference"] = st.selectbox(
             "7. How much do you like your current academic major?",
             [
-                option[0]
-                for option in options_dict["Satisfaction with Major"]
+                item[0]
+                for item in options_dict["X24_professional preference"]
             ],
             help=(
                 "Evaluate your interest in and satisfaction with "
@@ -266,13 +283,13 @@ with st.form("student_depressive_symptoms_form"):
             )
         )
 
-        inputs["Satisfaction with Awards and Honors"] = st.selectbox(
+        inputs["X25_award evaluation satisfaction"] = st.selectbox(
             "8. How satisfied are you with the evaluation and allocation "
             "of awards and honors?",
             [
-                option[0]
-                for option in options_dict[
-                    "Satisfaction with Awards and Honors"
+                item[0]
+                for item in options_dict[
+                    "X25_award evaluation satisfaction"
                 ]
             ],
             help=(
@@ -281,20 +298,23 @@ with st.form("student_depressive_symptoms_form"):
             )
         )
 
-        inputs["Regular Diet"] = st.selectbox(
+        inputs["X27_eat regularly"] = st.selectbox(
             "9. Do you maintain a regular eating schedule?",
-            [option[0] for option in options_dict["Regular Diet"]],
+            [
+                item[0]
+                for item in options_dict["X27_eat regularly"]
+            ],
             help=(
                 "Select Yes if you generally eat meals at regular times "
                 "and maintain consistent eating habits."
             )
         )
 
-        inputs["Insomnia Severity"] = st.selectbox(
+        inputs["X37_insomnia condition"] = st.selectbox(
             "10. How severe is your current insomnia?",
             [
-                option[0]
-                for option in options_dict["Insomnia Severity"]
+                item[0]
+                for item in options_dict["X37_insomnia condition"]
             ],
             help=(
                 "Evaluate recent difficulties falling asleep, staying asleep, "
@@ -309,29 +329,33 @@ with st.form("student_depressive_symptoms_form"):
 
 
 # ============================================================
-# 7. Prediction and results
+# 8. Prediction and results
 # ============================================================
 if submitted and model is not None:
 
     try:
-        # Convert response labels into numerical values
+        # Convert selected English labels to numerical values
         input_values = [
             dict(options_dict[feature])[inputs[feature]]
-            for feature in feature_names
+            for feature in model_feature_names
         ]
 
-        # Use a DataFrame to preserve the feature order
+        # IMPORTANT:
+        # The columns use the exact names and order from the training data.
         input_data = pd.DataFrame(
             [input_values],
-            columns=feature_names
+            columns=model_feature_names
         )
 
-        # Generate predicted probability
+        # Predict probability
         probability = model.predict_proba(input_data)
 
         prob_depressive_symptoms = float(probability[0][1])
 
-        # Risk stratification
+
+        # ====================================================
+        # 9. Risk stratification
+        # ====================================================
         if prob_depressive_symptoms < 0.42:
             risk_level = "No Risk"
             risk_color = "#2E7D32"
@@ -350,12 +374,10 @@ if submitted and model is not None:
 
 
         # ====================================================
-        # 8. Assessment result box
+        # 10. Assessment result
         # ====================================================
         st.subheader("Assessment Results")
 
-        # The HTML is written as a continuous string to prevent
-        # Streamlit Markdown from displaying the tags as plain text.
         result_html = (
             f'<div style="background-color:#f0f2f6;'
             f'padding:20px;'
@@ -366,8 +388,7 @@ if submitted and model is not None:
             f'margin:0 0 10px 0;">'
             f'Depressive Symptoms Risk Level: {risk_level}'
             f'</h3>'
-            f'<p style="font-size:16px;'
-            f'margin:0;">'
+            f'<p style="font-size:16px;margin:0;">'
             f'<strong>Predicted Risk Probability:</strong> '
             f'{prob_depressive_symptoms:.2%}'
             f'</p>'
@@ -381,7 +402,7 @@ if submitted and model is not None:
 
 
         # ====================================================
-        # 9. Risk interpretation and recommendations
+        # 11. Risk interpretation
         # ====================================================
         st.subheader("Risk Interpretation and Recommendations")
 
@@ -446,17 +467,20 @@ to inform a trusted family member, friend, teacher, or counselor.
 
 
         # ====================================================
-        # 10. Global feature importance
+        # 12. Global feature importance
         # ====================================================
         if hasattr(model, "feature_importances_"):
 
             feature_importances = model.feature_importances_
 
-            if len(feature_importances) == len(feature_names):
+            if len(feature_importances) == len(model_feature_names):
 
                 importance_df = pd.DataFrame(
                     {
-                        "Predictive Factor": feature_names,
+                        "Predictive Factor": [
+                            display_names[feature]
+                            for feature in model_feature_names
+                        ],
                         "Importance": feature_importances
                     }
                 ).sort_values(
@@ -501,7 +525,7 @@ to inform a trusted family member, friend, teacher, or counselor.
 
 
         # ====================================================
-        # 11. Risk probability position chart
+        # 13. Risk probability position
         # ====================================================
         st.subheader("Risk Probability Position")
 
@@ -514,14 +538,17 @@ to inform a trusted family member, friend, teacher, or counselor.
 
         interval_values = [
             min(prob_depressive_symptoms, 0.42),
+
             max(
                 0,
                 min(prob_depressive_symptoms, 0.60) - 0.42
             ),
+
             max(
                 0,
                 min(prob_depressive_symptoms, 0.76) - 0.60
             ),
+
             max(
                 0,
                 prob_depressive_symptoms - 0.76
@@ -568,16 +595,19 @@ to inform a trusted family member, friend, teacher, or counselor.
 
 
         # ====================================================
-        # 12. Summary of user responses
+        # 14. Summary of user responses
         # ====================================================
         st.subheader("Summary of Your Responses")
 
         user_input_df = pd.DataFrame(
             {
-                "Assessment Dimension": feature_names,
+                "Assessment Dimension": [
+                    display_names[feature]
+                    for feature in model_feature_names
+                ],
                 "Selected Response": [
                     inputs[feature]
-                    for feature in feature_names
+                    for feature in model_feature_names
                 ],
                 "Encoded Value": input_values
             }
@@ -591,7 +621,7 @@ to inform a trusted family member, friend, teacher, or counselor.
 
 
         # ====================================================
-        # 13. Disclaimer
+        # 15. Disclaimer
         # ====================================================
         st.markdown("---")
 
@@ -631,7 +661,7 @@ elif submitted and model is None:
 
 
 # ============================================================
-# 14. Sidebar information
+# 16. Sidebar
 # ============================================================
 with st.sidebar:
 
