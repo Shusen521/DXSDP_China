@@ -1,300 +1,708 @@
 import streamlit as st
-import matplotlib.pyplot as plt
 import joblib
 import plotly.express as px
 import numpy as np
 import pandas as pd
 
-# 定义特征名称（中文标签）
-feature_names_chinese = [
-    "您现在所处的年级",
-    "您的家庭亲密度情况如何", 
-    "是否因长期远离家人不能团聚而苦恼",
-    "您对学习成绩的满意度",
-    "您的课余生活是否丰富",
-    "您对大学班级的班级风气评价",
-    "您对本专业的喜爱程度",
-    "您对评奖评优的满意度",
-    "您是否规律饮食",
-    "您的失眠程度"
+
+# ============================================================
+# 1. Feature names
+# The order must remain consistent with the model training data.
+# ============================================================
+feature_names = [
+    "Grade Level",
+    "Family Cohesion",
+    "Homesickness-Related Distress",
+    "Satisfaction with Academic Performance",
+    "Richness of Extracurricular Life",
+    "Class Atmosphere",
+    "Satisfaction with Major",
+    "Satisfaction with Awards and Honors",
+    "Regular Diet",
+    "Insomnia Severity"
 ]
 
-# 定义特征的选项（中文）
-options_dict_chinese = {
-    "您现在所处的年级": [("大一", 1), ("大二", 2), ("大三", 3), ("大四", 4), ("大五", 5)],
-    "您的家庭亲密度情况如何": [("亲密", 1), ("较亲密", 2), ("一般", 3), ("较冷漠", 4), ("冷漠", 5)],
-    "是否因长期远离家人不能团聚而苦恼": [("无", 1), ("较轻", 2), ("适中", 3), ("严重", 4)],
-    "您对学习成绩的满意度": [("非常满意", 1), ("较满意", 2), ("适中", 3), ("较不满意", 4), ("非常不满意", 5)],
-    "您的课余生活是否丰富": [("非常丰富", 1), ("较丰富", 2), ("一般", 3), ("无", 4)],
-    "您对大学班级的班级风气评价": [("积极向上", 1), ("和睦融洽", 2), ("一般", 3), ("懒散懈怠", 4), ("勾心斗角", 5)],
-    "您对本专业的喜爱程度": [("非常喜欢", 1), ("较喜欢", 2), ("一般", 3), ("较不喜欢", 4), ("非常不喜欢", 5)],
-    "您对评奖评优的满意度": [("非常满意", 1), ("较满意", 2), ("一般", 3), ("较不满意", 4), ("非常不满意", 5)],
-    "您是否规律饮食": [("否", 0), ("是", 1)],
-    "您的失眠程度": [("无", 1), ("适中", 2), ("较轻", 3), ("严重", 4)]
+
+# ============================================================
+# 2. Response options and corresponding encoded values
+# The numerical coding must remain consistent with the original
+# model training data.
+# ============================================================
+options_dict = {
+    "Grade Level": [
+        ("Freshman", 1),
+        ("Sophomore", 2),
+        ("Junior", 3),
+        ("Senior", 4),
+        ("Fifth-Year Student", 5)
+    ],
+
+    "Family Cohesion": [
+        ("Very Close", 1),
+        ("Relatively Close", 2),
+        ("Neutral", 3),
+        ("Relatively Distant", 4),
+        ("Very Distant", 5)
+    ],
+
+    "Homesickness-Related Distress": [
+        ("None", 1),
+        ("Mild", 2),
+        ("Moderate", 3),
+        ("Severe", 4)
+    ],
+
+    "Satisfaction with Academic Performance": [
+        ("Very Satisfied", 1),
+        ("Satisfied", 2),
+        ("Neutral", 3),
+        ("Dissatisfied", 4),
+        ("Very Dissatisfied", 5)
+    ],
+
+    "Richness of Extracurricular Life": [
+        ("Very Rich", 1),
+        ("Relatively Rich", 2),
+        ("Average", 3),
+        ("Not Rich", 4)
+    ],
+
+    "Class Atmosphere": [
+        ("Positive and Motivating", 1),
+        ("Harmonious and Supportive", 2),
+        ("Average", 3),
+        ("Inactive and Unmotivated", 4),
+        ("Competitive and Conflict-Ridden", 5)
+    ],
+
+    "Satisfaction with Major": [
+        ("Like It Very Much", 1),
+        ("Like It", 2),
+        ("Neutral", 3),
+        ("Dislike It", 4),
+        ("Dislike It Very Much", 5)
+    ],
+
+    "Satisfaction with Awards and Honors": [
+        ("Very Satisfied", 1),
+        ("Satisfied", 2),
+        ("Neutral", 3),
+        ("Dissatisfied", 4),
+        ("Very Dissatisfied", 5)
+    ],
+
+    "Regular Diet": [
+        ("No", 0),
+        ("Yes", 1)
+    ],
+
+    "Insomnia Severity": [
+        ("None", 1),
+        ("Moderate", 2),
+        ("Mild", 3),
+        ("Severe", 4)
+    ]
 }
 
-# 设置页面标题（中文）
-st.title("大学生抑郁早期风险预测模型")
-st.markdown("""
-本工具基于机器学习模型，通过社会生态系统理论分析大学生在校期间的导致抑郁的多维度抑郁因素，评估抑郁风险水平。
-请根据您的实际情况填写以下信息。
-""")
 
-# 加载训练好的模型
+# ============================================================
+# 3. Page configuration
+# ============================================================
+st.set_page_config(
+    page_title="Depressive Symptoms Risk Prediction",
+    page_icon="🧠",
+    layout="wide"
+)
+
+
+# ============================================================
+# 4. Page title and introduction
+# ============================================================
+st.title("Early Risk Prediction Model for Depressive Symptoms Among College Students")
+
+st.markdown(
+    """
+    This tool uses a machine learning model developed within a social ecological 
+    systems framework to estimate the risk of depressive symptoms among college 
+    students.
+
+    The assessment considers multidimensional factors related to academic life, 
+    family relationships, campus environment, lifestyle, and psychological well-being.
+
+    Please select the responses that best reflect your current situation.
+    """
+)
+
+
+# ============================================================
+# 5. Load the trained model
+# ============================================================
 @st.cache_resource
 def load_model():
-    # 请确保您的模型文件命名为"DXSDP.pkl"并放在同一目录下
+    """
+    Load the trained machine learning model.
+
+    Ensure that the model file named 'DXSDP.pkl' is stored in the
+    same directory as this Streamlit application.
+    """
     try:
-        model = joblib.load("DXSDP.pkl")
-        return model
+        loaded_model = joblib.load("DXSDP.pkl")
+        return loaded_model
+
     except FileNotFoundError:
-        st.error("模型文件未找到，请确保'DXSDP.pkl'存在于当前目录")
+        st.error(
+            "The model file was not found. Please ensure that "
+            "'DXSDP.pkl' is located in the current directory."
+        )
         return None
+
+    except Exception as error:
+        st.error(f"An error occurred while loading the model: {str(error)}")
+        return None
+
 
 model = load_model()
 
-# 使用 Streamlit 表单，控制运行行为
-with st.form("student_depression_form"):
-    st.subheader("个人信息填写")
-    st.markdown("请根据您的实际情况选择以下选项：")
-    
-    # 创建两列布局，使界面更紧凑
+
+# ============================================================
+# 6. Assessment form
+# ============================================================
+with st.form("student_depressive_symptoms_form"):
+
+    st.subheader("Assessment Information")
+
+    st.markdown(
+        "Please select the option that most accurately describes your current situation."
+    )
+
+    # Create a two-column layout
     col1, col2 = st.columns(2)
-    
+
     inputs = {}
+
     with col1:
-        inputs["您现在所处的年级"] = st.selectbox(
-            "您现在所处的年级",
-            [option[0] for option in options_dict_chinese["您现在所处的年级"]],
-            help="选择您当前所在的年级"
+        inputs["Grade Level"] = st.selectbox(
+            "1. What is your current grade level?",
+            [option[0] for option in options_dict["Grade Level"]],
+            help="Select your current year of university study."
         )
-        
-        inputs["您的家庭亲密度情况如何"] = st.selectbox(
-            "您的家庭亲密度情况如何", 
-            [option[0] for option in options_dict_chinese["您的家庭亲密度情况如何"]],
-            help="评估您与家庭成员之间的亲密程度"
+
+        inputs["Family Cohesion"] = st.selectbox(
+            "2. How would you describe the level of cohesion within your family?",
+            [option[0] for option in options_dict["Family Cohesion"]],
+            help=(
+                "Consider the emotional closeness, communication, and support "
+                "among your family members."
+            )
         )
-        
-        inputs["是否因长期远离家人不能团聚而苦恼"] = st.selectbox(
-            "是否因长期远离家人不能团聚而苦恼",
-            [option[0] for option in options_dict_chinese["是否因长期远离家人不能团聚而苦恼"]],
-            help="评估因远离家人而产生的情绪困扰程度"
+
+        inputs["Homesickness-Related Distress"] = st.selectbox(
+            "3. How distressed are you because you have been away from your family for an extended period?",
+            [option[0] for option in options_dict["Homesickness-Related Distress"]],
+            help=(
+                "Evaluate the level of emotional distress associated with being "
+                "separated from your family."
+            )
         )
-        
-        inputs["您对学习成绩的满意度"] = st.selectbox(
-            "您对学习成绩的满意度",
-            [option[0] for option in options_dict_chinese["您对学习成绩的满意度"]],
-            help="对当前学习成绩的满意程度"
+
+        inputs["Satisfaction with Academic Performance"] = st.selectbox(
+            "4. How satisfied are you with your current academic performance?",
+            [
+                option[0]
+                for option in options_dict[
+                    "Satisfaction with Academic Performance"
+                ]
+            ],
+            help="Evaluate your satisfaction with your current academic performance."
         )
-        
-        inputs["您的课余生活是否丰富"] = st.selectbox(
-            "您的课余生活是否丰富",
-            [option[0] for option in options_dict_chinese["您的课余生活是否丰富"]],
-            help="评估课余生活的丰富程度"
+
+        inputs["Richness of Extracurricular Life"] = st.selectbox(
+            "5. How rich and varied is your extracurricular life?",
+            [
+                option[0]
+                for option in options_dict[
+                    "Richness of Extracurricular Life"
+                ]
+            ],
+            help=(
+                "Consider your participation in recreational, social, athletic, "
+                "cultural, or student activities outside class."
+            )
         )
-    
+
     with col2:
-        inputs["您对大学班级的班级风气评价"] = st.selectbox(
-            "您对大学班级的班级风气评价",
-            [option[0] for option in options_dict_chinese["您对大学班级的班级风气评价"]],
-            help="对班级整体氛围的评价"
+        inputs["Class Atmosphere"] = st.selectbox(
+            "6. How would you describe the overall atmosphere in your class?",
+            [option[0] for option in options_dict["Class Atmosphere"]],
+            help=(
+                "Evaluate the overall interpersonal, motivational, and learning "
+                "environment in your class."
+            )
         )
-        
-        inputs["您对本专业的喜爱程度"] = st.selectbox(
-            "您对本专业的喜爱程度",
-            [option[0] for option in options_dict_chinese["您对本专业的喜爱程度"]],
-            help="对所学专业的兴趣和喜爱程度"
-        )
-        
-        inputs["您对评奖评优的满意度"] = st.selectbox(
-            "您对评奖评优的满意度",
-            [option[0] for option in options_dict_chinese["您对评奖评优的满意度"]],
-            help="对学校评奖评优制度的满意程度"
-        )
-        
-        inputs["您是否规律饮食"] = st.selectbox(
-            "您是否规律饮食",
-            [option[0] for option in options_dict_chinese["您是否规律饮食"]],
-            help="饮食是否规律"
-        )
-        
-        inputs["您的失眠程度"] = st.selectbox(
-            "您的失眠程度", 
-            [option[0] for option in options_dict_chinese["您的失眠程度"]],
-            help="近期失眠情况的严重程度"
-        )
-    
-    # 添加提交按钮（中文）
-    submitted = st.form_submit_button("进行抑郁风险评估")
 
-# 只有在点击按钮后才运行以下代码
+        inputs["Satisfaction with Major"] = st.selectbox(
+            "7. How much do you like your current academic major?",
+            [option[0] for option in options_dict["Satisfaction with Major"]],
+            help="Evaluate your interest in and satisfaction with your academic major."
+        )
+
+        inputs["Satisfaction with Awards and Honors"] = st.selectbox(
+            "8. How satisfied are you with the evaluation and allocation of awards and honors?",
+            [
+                option[0]
+                for option in options_dict[
+                    "Satisfaction with Awards and Honors"
+                ]
+            ],
+            help=(
+                "Evaluate your satisfaction with the policies and procedures "
+                "used to determine awards and honors."
+            )
+        )
+
+        inputs["Regular Diet"] = st.selectbox(
+            "9. Do you maintain a regular eating schedule?",
+            [option[0] for option in options_dict["Regular Diet"]],
+            help=(
+                "Select 'Yes' if you generally eat meals at regular times "
+                "and maintain consistent eating habits."
+            )
+        )
+
+        inputs["Insomnia Severity"] = st.selectbox(
+            "10. How severe is your current insomnia?",
+            [option[0] for option in options_dict["Insomnia Severity"]],
+            help=(
+                "Evaluate the severity of recent difficulties falling asleep, "
+                "staying asleep, or obtaining restorative sleep."
+            )
+        )
+
+    submitted = st.form_submit_button(
+        "Assess Depressive Symptoms Risk",
+        use_container_width=True
+    )
+
+
+# ============================================================
+# 7. Generate prediction after form submission
+# ============================================================
 if submitted and model is not None:
-    try:
-        # 准备输入数据（将选择的中文标签转换为数字）
-        input_data = np.array([
-            dict(options_dict_chinese[feature])[inputs[feature]] 
-            for feature in feature_names_chinese
-        ]).reshape(1, -1)
 
-        # 预测结果和概率
+    try:
+        # Convert selected response labels into their numerical values
+        input_values = [
+            dict(options_dict[feature])[inputs[feature]]
+            for feature in feature_names
+        ]
+
+        input_data = np.array(input_values).reshape(1, -1)
+
+        # Generate prediction and predicted probability
         prediction = model.predict(input_data)
         probability = model.predict_proba(input_data)
 
-        # 根据新的风险分层进行分类
-        prob_depression = probability[0][1]  # 有抑郁风险的概率
-        risk_level = ""
-        risk_color = ""
+        # Probability of depressive symptoms risk
+        prob_depressive_symptoms = probability[0][1]
 
-        if prob_depression < 0.42:
-            risk_level = "无风险"
+        # Determine the risk category
+        if prob_depressive_symptoms < 0.42:
+            risk_level = "No Risk"
             risk_color = "green"
-        elif 0.42 <= prob_depression < 0.60:
-            risk_level = "低风险"
+
+        elif prob_depressive_symptoms < 0.60:
+            risk_level = "Low Risk"
             risk_color = "blue"
-        elif 0.60 <= prob_depression < 0.76:
-            risk_level = "中风险" 
+
+        elif prob_depressive_symptoms < 0.76:
+            risk_level = "Moderate Risk"
             risk_color = "orange"
+
         else:
-            risk_level = "高风险"
+            risk_level = "High Risk"
             risk_color = "red"
 
-        # 显示结果（中文）
-        st.subheader("评估结果")
-        
-        # 使用容器突出显示风险等级
+
+        # ====================================================
+        # 8. Display assessment results
+        # ====================================================
+        st.subheader("Assessment Results")
+
         with st.container():
-            st.markdown(f"""
-            <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid {risk_color};">
-                <h3 style="color: {risk_color}; margin-top: 0;">抑郁风险等级: {risk_level}</h3>
-                <p style="font-size: 16px; margin-bottom: 0;"><strong>抑郁风险概率:</strong> {prob_depression:.2%}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # 风险解释和建议
-        st.subheader("风险说明与建议")
-        if risk_level == "无风险":
-            st.success("""
-            ✅ **当前状态良好**：您的心理健康状况良好，请继续保持健康的生活和学习习惯。
-            **建议**：保持规律作息，积极参与校园活动，建立良好的社交支持系统。
-            """)
-        elif risk_level == "低风险":
-            st.info("""
-            ℹ️ **需要关注**：您存在一定的抑郁风险因素，建议适当关注心理健康。
-            **建议**：加强自我调节，适当减压，可咨询学校心理咨询中心获取指导。
-            """)
-        elif risk_level == "中风险":
-            st.warning("""
-            ⚠️ **中度风险**：您的抑郁风险较高，需要重视心理健康状况。
-            **建议**：建议尽快联系学校心理咨询中心进行专业评估，学习压力管理技巧。
-            """)
+            st.markdown(
+                f"""
+                <div style="
+                    background-color: #f0f2f6;
+                    padding: 20px;
+                    border-radius: 10px;
+                    border-left: 5px solid {risk_color};
+                    margin-bottom: 15px;
+                ">
+                    <h3 style="
+                        color: {risk_color};
+                        margin-top: 0;
+                        margin-bottom: 10px;
+                    ">
+                        Depressive Symptoms Risk Level: {risk_level}
+                    </h3>
+
+                    <p style="
+                        font-size: 16px;
+                        margin-bottom: 0;
+                    ">
+                        <strong>Predicted Risk Probability:</strong>
+                        {prob_depressive_symptoms:.2%}
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+        # ====================================================
+        # 9. Risk interpretation and recommendations
+        # ====================================================
+        st.subheader("Risk Interpretation and Recommendations")
+
+        if risk_level == "No Risk":
+            st.success(
+                """
+                ✅ **Current status: No apparent risk**
+
+                The model indicates that your current risk of depressive symptoms 
+                is relatively low.
+
+                **Recommendations:** Continue maintaining a regular daily routine, 
+                healthy eating and sleeping habits, active participation in campus 
+                activities, and supportive social relationships.
+                """
+            )
+
+        elif risk_level == "Low Risk":
+            st.info(
+                """
+                ℹ️ **Current status: Some attention may be beneficial**
+
+                The model indicates that you may have some factors associated with 
+                depressive symptoms.
+
+                **Recommendations:** Pay attention to changes in your mood and daily 
+                functioning, maintain regular sleep and eating habits, use appropriate 
+                stress-management strategies, and consider consulting your university 
+                counseling center if emotional distress persists.
+                """
+            )
+
+        elif risk_level == "Moderate Risk":
+            st.warning(
+                """
+                ⚠️ **Current status: Further assessment is recommended**
+
+                The model indicates a moderately elevated risk of depressive symptoms.
+
+                **Recommendations:** Consider contacting your university counseling 
+                center or a qualified mental health professional for a comprehensive 
+                assessment. You may also benefit from discussing your situation with 
+                a trusted family member, friend, teacher, or counselor.
+                """
+            )
+
         else:
-            st.error("""
-            🚨 **高风险**：您的抑郁风险较高，需要立即采取行动。
-            **建议**：请立即联系学校心理咨询中心或专业心理医生，寻求专业帮助。同时可告知信任的亲友获取支持。
-            """)
-        
-        # 获取特征重要性（如果模型有此属性）
-        if hasattr(model, 'feature_importances_'):
+            st.error(
+                """
+                🚨 **Current status: Prompt professional support is recommended**
+
+                The model indicates a relatively high risk of depressive symptoms.
+
+                **Recommendations:** Please contact your university counseling center 
+                or a qualified mental health professional as soon as possible for a 
+                comprehensive assessment and appropriate support. You are also encouraged 
+                to inform a trusted family member, friend, teacher, or counselor about 
+                your current situation.
+                """
+            )
+
+
+        # ====================================================
+        # 10. Global feature importance
+        # ====================================================
+        if hasattr(model, "feature_importances_"):
+
             feature_importances = model.feature_importances_
-            
-            # 创建DataFrame，使用中文特征名
-            importance_df = pd.DataFrame({
-                '特征': feature_names_chinese,
-                '重要性': feature_importances
-            }).sort_values(by='重要性', ascending=True)  # 改为升序，使图表从上到下显示
-            
-            # 特征重要性图表
-            st.subheader("影响因素重要性分析")
+
+            importance_df = pd.DataFrame(
+                {
+                    "Predictive Factor": feature_names,
+                    "Importance": feature_importances
+                }
+            ).sort_values(
+                by="Importance",
+                ascending=True
+            )
+
+            st.subheader("Global Predictor Importance")
+
+            st.caption(
+                """
+                This chart shows the overall importance of each predictor in the 
+                trained model. It does not represent the contribution of each factor 
+                to this individual prediction.
+                """
+            )
+
             fig_importance = px.bar(
                 importance_df,
-                x='重要性',
-                y='特征',
-                orientation='h',
-                title='各因素对抑郁风险的影响程度',
-                labels={'重要性': '影响重要性', '特征': '影响因素'},
-                color='重要性',
-                color_continuous_scale='Blues'
+                x="Importance",
+                y="Predictive Factor",
+                orientation="h",
+                title="Overall Importance of Predictors in the Model",
+                labels={
+                    "Importance": "Feature Importance",
+                    "Predictive Factor": "Predictive Factor"
+                },
+                color="Importance",
+                color_continuous_scale="Blues"
             )
-            fig_importance.update_layout(showlegend=False)
-            st.plotly_chart(fig_importance, use_container_width=True)
 
-        # 风险概率分布图
-        st.subheader("风险概率分布")
-        risk_ranges = ['无风险(0-0.42)', '低风险(0.42-0.60)', '中风险(0.60-0.76)', '高风险(0.76-1.0)']
-        risk_probs = [
-            min(prob_depression, 0.42),
-            max(0, min(prob_depression - 0.42, 0.18)) if prob_depression > 0.42 else 0,
-            max(0, min(prob_depression - 0.60, 0.16)) if prob_depression > 0.60 else 0,
-            max(0, prob_depression - 0.76) if prob_depression > 0.76 else 0
+            fig_importance.update_layout(
+                showlegend=False,
+                coloraxis_showscale=False,
+                title_x=0.5,
+                yaxis_title=None
+            )
+
+            st.plotly_chart(
+                fig_importance,
+                use_container_width=True
+            )
+
+
+        # ====================================================
+        # 11. Risk probability distribution
+        # ====================================================
+        st.subheader("Risk Probability Distribution")
+
+        risk_ranges = [
+            "No Risk (0.00–0.42)",
+            "Low Risk (0.42–0.60)",
+            "Moderate Risk (0.60–0.76)",
+            "High Risk (0.76–1.00)"
         ]
-        
-        # 确保概率分布正确显示当前风险区间
-        current_risk_index = 0 if prob_depression < 0.42 else 1 if prob_depression < 0.60 else 2 if prob_depression < 0.76 else 3
-        for i in range(len(risk_probs)):
-            if i == current_risk_index:
-                risk_probs[i] = prob_depression - (0.42 if i==1 else 0.60 if i==2 else 0.76 if i==3 else 0)
-            elif i < current_risk_index:
-                risk_probs[i] = 0.42 if i==0 else 0.18 if i==1 else 0.16
+
+        risk_probabilities = [
+            min(prob_depressive_symptoms, 0.42),
+
+            (
+                max(
+                    0,
+                    min(prob_depressive_symptoms - 0.42, 0.18)
+                )
+                if prob_depressive_symptoms > 0.42
+                else 0
+            ),
+
+            (
+                max(
+                    0,
+                    min(prob_depressive_symptoms - 0.60, 0.16)
+                )
+                if prob_depressive_symptoms > 0.60
+                else 0
+            ),
+
+            (
+                max(
+                    0,
+                    prob_depressive_symptoms - 0.76
+                )
+                if prob_depressive_symptoms > 0.76
+                else 0
+            )
+        ]
+
+        # Identify the current risk interval
+        if prob_depressive_symptoms < 0.42:
+            current_risk_index = 0
+
+        elif prob_depressive_symptoms < 0.60:
+            current_risk_index = 1
+
+        elif prob_depressive_symptoms < 0.76:
+            current_risk_index = 2
+
+        else:
+            current_risk_index = 3
+
+        # Adjust bars to display cumulative risk probability
+        for index in range(len(risk_probabilities)):
+
+            if index == current_risk_index:
+                interval_start = (
+                    0
+                    if index == 0
+                    else 0.42
+                    if index == 1
+                    else 0.60
+                    if index == 2
+                    else 0.76
+                )
+
+                risk_probabilities[index] = (
+                    prob_depressive_symptoms - interval_start
+                )
+
+            elif index < current_risk_index:
+                risk_probabilities[index] = (
+                    0.42
+                    if index == 0
+                    else 0.18
+                    if index == 1
+                    else 0.16
+                )
+
             else:
-                risk_probs[i] = 0
-        
-        prob_df = pd.DataFrame({
-            '风险等级': risk_ranges,
-            '概率区间': risk_probs
-        })
-        
-        fig_probability = px.bar(
-            prob_df,
-            x='概率区间',
-            y='风险等级',
-            orientation='h',
-            title='风险概率分布',
-            labels={'概率区间': '概率值', '风险等级': '风险等级'},
-            color='风险等级',
-            color_discrete_sequence=['green', 'blue', 'orange', 'red']
-        )
-        st.plotly_chart(fig_probability, use_container_width=True)
-        
-        # 显示用户输入数据汇总
-        st.subheader("您的输入信息汇总")
-        user_input_values = [
-            dict(options_dict_chinese[feature])[inputs[feature]]
-            for feature in feature_names_chinese
-        ]
-        user_input_df = pd.DataFrame({
-            '评估维度': feature_names_chinese,
-            '您的选择': [inputs[feature] for feature in feature_names_chinese],
-            '对应数值': user_input_values
-        })
-        
-        st.dataframe(user_input_df, use_container_width=True)
-        
-        # 免责声明
-        st.markdown("---")
-        st.caption("""
-        **免责声明**：本评估工具基于机器学习模型预测，结果仅供参考，不能替代专业心理医生的诊断。 
-        如果您感到情绪困扰，请及时联系学校心理咨询中心或专业医疗机构。
-        """)
+                risk_probabilities[index] = 0
 
-    except ValueError as e:
-        st.error("输入数据格式错误，请检查所有选项是否已正确选择！")
-    except Exception as e:
-        st.error(f"评估过程中出现错误: {str(e)}")
+        probability_df = pd.DataFrame(
+            {
+                "Risk Category": risk_ranges,
+                "Probability Interval": risk_probabilities
+            }
+        )
+
+        fig_probability = px.bar(
+            probability_df,
+            x="Probability Interval",
+            y="Risk Category",
+            orientation="h",
+            title="Distribution of the Predicted Risk Probability",
+            labels={
+                "Probability Interval": "Probability",
+                "Risk Category": "Risk Category"
+            },
+            color="Risk Category",
+            color_discrete_sequence=[
+                "green",
+                "blue",
+                "orange",
+                "red"
+            ]
+        )
+
+        fig_probability.update_layout(
+            title_x=0.5,
+            showlegend=False,
+            yaxis_title=None
+        )
+
+        st.plotly_chart(
+            fig_probability,
+            use_container_width=True
+        )
+
+
+        # ====================================================
+        # 12. Summary of user responses
+        # ====================================================
+        st.subheader("Summary of Your Responses")
+
+        user_input_df = pd.DataFrame(
+            {
+                "Assessment Dimension": feature_names,
+                "Selected Response": [
+                    inputs[feature]
+                    for feature in feature_names
+                ],
+                "Encoded Value": input_values
+            }
+        )
+
+        st.dataframe(
+            user_input_df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+
+        # ====================================================
+        # 13. Disclaimer
+        # ====================================================
+        st.markdown("---")
+
+        st.caption(
+            """
+            **Disclaimer:** This assessment tool uses a machine learning model to 
+            estimate the risk of depressive symptoms. The result is intended for 
+            screening and research purposes only and does not constitute a clinical 
+            diagnosis or replace an assessment by a qualified mental health professional.
+
+            If you are experiencing persistent emotional distress, impaired daily 
+            functioning, thoughts of self-harm, or an immediate mental health crisis, 
+            please seek professional or emergency assistance promptly.
+            """
+        )
+
+
+    except ValueError:
+        st.error(
+            "The input data are incorrectly formatted. Please verify that all "
+            "questions have been answered correctly."
+        )
+
+    except Exception as error:
+        st.error(
+            f"An error occurred during the assessment: {str(error)}"
+        )
+
 
 elif submitted and model is None:
-    st.error("模型加载失败，无法进行风险评估。请检查模型文件是否存在。")
+    st.error(
+        "The model could not be loaded, and the assessment cannot be completed. "
+        "Please verify that the model file exists in the application directory."
+    )
 
-# 侧边栏添加额外信息
+
+# ============================================================
+# 14. Sidebar information
+# ============================================================
 with st.sidebar:
-    st.header("关于本工具")
-    st.markdown("""
-    本大学生抑郁风险预测模型基于社会生态系统理论分析多维度大学生抑郁风险因素构建，已经过多轮验证，旨在为大学生提供早期心理健康风险评估。
-    
-    **评估维度包括**：
-    - 学业相关因素
-    - 家庭支持系统  
-    - 校园生活环境
-    - 个人生活习惯
-    - 心理健康状况
-    """)
-    
+
+    st.header("About This Tool")
+
+    st.markdown(
+        """
+        This machine-learning-based prediction model was developed within a 
+        social ecological systems framework to estimate the risk of depressive 
+        symptoms among college students.
+
+        The tool is intended to support early risk identification and mental 
+        health screening rather than clinical diagnosis.
+
+        **Assessment dimensions include:**
+
+        - Academic factors
+        - Family relationships and support
+        - Campus and class environment
+        - Lifestyle behaviors
+        - Sleep and psychological well-being
+        """
+    )
+
+    st.markdown("---")
+
+    st.subheader("Risk Classification")
+
+    st.markdown(
+        """
+        - **No Risk:** probability below 0.42
+        - **Low Risk:** probability from 0.42 to below 0.60
+        - **Moderate Risk:** probability from 0.60 to below 0.76
+        - **High Risk:** probability of 0.76 or higher
+        """
+    )
+
+    st.markdown("---")
+
+    st.caption(
+        "This tool is intended for research and preliminary screening purposes only."
+    )
