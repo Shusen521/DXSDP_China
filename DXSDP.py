@@ -1,13 +1,24 @@
 import streamlit as st
 import joblib
+import xgboost as xgb
 import plotly.express as px
 import numpy as np
 import pandas as pd
 
 
 # ============================================================
-# 1. Feature names
-# The order must remain consistent with the model training data.
+# 1. Page configuration
+# ============================================================
+st.set_page_config(
+    page_title="Depressive Symptoms Risk Prediction",
+    page_icon="🧠",
+    layout="wide"
+)
+
+
+# ============================================================
+# 2. Feature names
+# The order must remain consistent with the training dataset.
 # ============================================================
 feature_names = [
     "Grade Level",
@@ -24,9 +35,8 @@ feature_names = [
 
 
 # ============================================================
-# 2. Response options and corresponding encoded values
-# The numerical coding must remain consistent with the original
-# model training data.
+# 3. Response options and numerical coding
+# The numerical values must remain consistent with model training.
 # ============================================================
 options_dict = {
     "Grade Level": [
@@ -106,31 +116,24 @@ options_dict = {
 
 
 # ============================================================
-# 3. Page configuration
-# ============================================================
-st.set_page_config(
-    page_title="Depressive Symptoms Risk Prediction",
-    page_icon="🧠",
-    layout="wide"
-)
-
-
-# ============================================================
 # 4. Page title and introduction
 # ============================================================
-st.title("Early Risk Prediction Model for Depressive Symptoms Among College Students")
+st.title(
+    "Early Risk Prediction Model for Depressive Symptoms "
+    "Among College Students"
+)
 
 st.markdown(
     """
-    This tool uses a machine learning model developed within a social ecological 
-    systems framework to estimate the risk of depressive symptoms among college 
-    students.
+This tool uses a machine learning model developed within a social ecological
+systems framework to estimate the risk of depressive symptoms among college
+students.
 
-    The assessment considers multidimensional factors related to academic life, 
-    family relationships, campus environment, lifestyle, and psychological well-being.
+The assessment considers factors related to academic life, family relationships,
+campus environment, lifestyle behaviors, and psychological well-being.
 
-    Please select the responses that best reflect your current situation.
-    """
+Please select the responses that best reflect your current situation.
+"""
 )
 
 
@@ -139,12 +142,6 @@ st.markdown(
 # ============================================================
 @st.cache_resource
 def load_model():
-    """
-    Load the trained machine learning model.
-
-    Ensure that the model file named 'DXSDP.pkl' is stored in the
-    same directory as this Streamlit application.
-    """
     try:
         loaded_model = joblib.load("DXSDP.pkl")
         return loaded_model
@@ -152,12 +149,22 @@ def load_model():
     except FileNotFoundError:
         st.error(
             "The model file was not found. Please ensure that "
-            "'DXSDP.pkl' is located in the current directory."
+            "'DXSDP.pkl' is located in the same directory as this application."
+        )
+        return None
+
+    except ModuleNotFoundError as error:
+        st.error(
+            f"A required Python package is missing: {str(error)}. "
+            "Please add the missing package to requirements.txt "
+            "and redeploy the application."
         )
         return None
 
     except Exception as error:
-        st.error(f"An error occurred while loading the model: {str(error)}")
+        st.error(
+            f"An error occurred while loading the model: {str(error)}"
+        )
         return None
 
 
@@ -172,10 +179,10 @@ with st.form("student_depressive_symptoms_form"):
     st.subheader("Assessment Information")
 
     st.markdown(
-        "Please select the option that most accurately describes your current situation."
+        "Please select the option that most accurately describes "
+        "your current situation."
     )
 
-    # Create a two-column layout
     col1, col2 = st.columns(2)
 
     inputs = {}
@@ -191,17 +198,21 @@ with st.form("student_depressive_symptoms_form"):
             "2. How would you describe the level of cohesion within your family?",
             [option[0] for option in options_dict["Family Cohesion"]],
             help=(
-                "Consider the emotional closeness, communication, and support "
-                "among your family members."
+                "Consider the emotional closeness, communication, "
+                "and support among your family members."
             )
         )
 
         inputs["Homesickness-Related Distress"] = st.selectbox(
-            "3. How distressed are you because you have been away from your family for an extended period?",
-            [option[0] for option in options_dict["Homesickness-Related Distress"]],
+            "3. How distressed are you because you have been away "
+            "from your family for an extended period?",
+            [
+                option[0]
+                for option in options_dict["Homesickness-Related Distress"]
+            ],
             help=(
-                "Evaluate the level of emotional distress associated with being "
-                "separated from your family."
+                "Evaluate the emotional distress associated with "
+                "being separated from your family."
             )
         )
 
@@ -213,7 +224,10 @@ with st.form("student_depressive_symptoms_form"):
                     "Satisfaction with Academic Performance"
                 ]
             ],
-            help="Evaluate your satisfaction with your current academic performance."
+            help=(
+                "Evaluate your satisfaction with your current "
+                "academic performance."
+            )
         )
 
         inputs["Richness of Extracurricular Life"] = st.selectbox(
@@ -225,8 +239,8 @@ with st.form("student_depressive_symptoms_form"):
                 ]
             ],
             help=(
-                "Consider your participation in recreational, social, athletic, "
-                "cultural, or student activities outside class."
+                "Consider your participation in recreational, social, "
+                "athletic, cultural, or student activities outside class."
             )
         )
 
@@ -235,19 +249,26 @@ with st.form("student_depressive_symptoms_form"):
             "6. How would you describe the overall atmosphere in your class?",
             [option[0] for option in options_dict["Class Atmosphere"]],
             help=(
-                "Evaluate the overall interpersonal, motivational, and learning "
+                "Evaluate the interpersonal, motivational, and learning "
                 "environment in your class."
             )
         )
 
         inputs["Satisfaction with Major"] = st.selectbox(
             "7. How much do you like your current academic major?",
-            [option[0] for option in options_dict["Satisfaction with Major"]],
-            help="Evaluate your interest in and satisfaction with your academic major."
+            [
+                option[0]
+                for option in options_dict["Satisfaction with Major"]
+            ],
+            help=(
+                "Evaluate your interest in and satisfaction with "
+                "your academic major."
+            )
         )
 
         inputs["Satisfaction with Awards and Honors"] = st.selectbox(
-            "8. How satisfied are you with the evaluation and allocation of awards and honors?",
+            "8. How satisfied are you with the evaluation and allocation "
+            "of awards and honors?",
             [
                 option[0]
                 for option in options_dict[
@@ -264,17 +285,20 @@ with st.form("student_depressive_symptoms_form"):
             "9. Do you maintain a regular eating schedule?",
             [option[0] for option in options_dict["Regular Diet"]],
             help=(
-                "Select 'Yes' if you generally eat meals at regular times "
+                "Select Yes if you generally eat meals at regular times "
                 "and maintain consistent eating habits."
             )
         )
 
         inputs["Insomnia Severity"] = st.selectbox(
             "10. How severe is your current insomnia?",
-            [option[0] for option in options_dict["Insomnia Severity"]],
+            [
+                option[0]
+                for option in options_dict["Insomnia Severity"]
+            ],
             help=(
-                "Evaluate the severity of recent difficulties falling asleep, "
-                "staying asleep, or obtaining restorative sleep."
+                "Evaluate recent difficulties falling asleep, staying asleep, "
+                "or obtaining restorative sleep."
             )
         )
 
@@ -285,78 +309,75 @@ with st.form("student_depressive_symptoms_form"):
 
 
 # ============================================================
-# 7. Generate prediction after form submission
+# 7. Prediction and results
 # ============================================================
 if submitted and model is not None:
 
     try:
-        # Convert selected response labels into their numerical values
+        # Convert response labels into numerical values
         input_values = [
             dict(options_dict[feature])[inputs[feature]]
             for feature in feature_names
         ]
 
-        input_data = np.array(input_values).reshape(1, -1)
+        # Use a DataFrame to preserve the feature order
+        input_data = pd.DataFrame(
+            [input_values],
+            columns=feature_names
+        )
 
-        # Generate prediction and predicted probability
-        prediction = model.predict(input_data)
+        # Generate predicted probability
         probability = model.predict_proba(input_data)
 
-        # Probability of depressive symptoms risk
-        prob_depressive_symptoms = probability[0][1]
+        prob_depressive_symptoms = float(probability[0][1])
 
-        # Determine the risk category
+        # Risk stratification
         if prob_depressive_symptoms < 0.42:
             risk_level = "No Risk"
-            risk_color = "green"
+            risk_color = "#2E7D32"
 
         elif prob_depressive_symptoms < 0.60:
             risk_level = "Low Risk"
-            risk_color = "blue"
+            risk_color = "#1565C0"
 
         elif prob_depressive_symptoms < 0.76:
             risk_level = "Moderate Risk"
-            risk_color = "orange"
+            risk_color = "#EF6C00"
 
         else:
             risk_level = "High Risk"
-            risk_color = "red"
+            risk_color = "#C62828"
 
 
         # ====================================================
-        # 8. Display assessment results
+        # 8. Assessment result box
         # ====================================================
         st.subheader("Assessment Results")
 
-        with st.container():
-            st.markdown(
-                f"""
-                <div style="
-                    background-color: #f0f2f6;
-                    padding: 20px;
-                    border-radius: 10px;
-                    border-left: 5px solid {risk_color};
-                    margin-bottom: 15px;
-                ">
-                    <h3 style="
-                        color: {risk_color};
-                        margin-top: 0;
-                        margin-bottom: 10px;
-                    ">
-                        Depressive Symptoms Risk Level: {risk_level}
-                    </h3>
+        # The HTML is written as a continuous string to prevent
+        # Streamlit Markdown from displaying the tags as plain text.
+        result_html = (
+            f'<div style="background-color:#f0f2f6;'
+            f'padding:20px;'
+            f'border-radius:10px;'
+            f'border-left:6px solid {risk_color};'
+            f'margin-bottom:15px;">'
+            f'<h3 style="color:{risk_color};'
+            f'margin:0 0 10px 0;">'
+            f'Depressive Symptoms Risk Level: {risk_level}'
+            f'</h3>'
+            f'<p style="font-size:16px;'
+            f'margin:0;">'
+            f'<strong>Predicted Risk Probability:</strong> '
+            f'{prob_depressive_symptoms:.2%}'
+            f'</p>'
+            f'</div>'
+        )
 
-                    <p style="
-                        font-size: 16px;
-                        margin-bottom: 0;
-                    ">
-                        <strong>Predicted Risk Probability:</strong>
-                        {prob_depressive_symptoms:.2%}
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+        st.markdown(
+            result_html,
+            unsafe_allow_html=True
+        )
 
 
         # ====================================================
@@ -367,59 +388,60 @@ if submitted and model is not None:
         if risk_level == "No Risk":
             st.success(
                 """
-                ✅ **Current status: No apparent risk**
+✅ **Current status: No apparent risk**
 
-                The model indicates that your current risk of depressive symptoms 
-                is relatively low.
+The model indicates that your current estimated risk of depressive
+symptoms is relatively low.
 
-                **Recommendations:** Continue maintaining a regular daily routine, 
-                healthy eating and sleeping habits, active participation in campus 
-                activities, and supportive social relationships.
-                """
+**Recommendations:** Continue maintaining a regular daily routine,
+healthy eating and sleeping habits, active participation in campus
+activities, and supportive social relationships.
+"""
             )
 
         elif risk_level == "Low Risk":
             st.info(
                 """
-                ℹ️ **Current status: Some attention may be beneficial**
+ℹ️ **Current status: Some attention may be beneficial**
 
-                The model indicates that you may have some factors associated with 
-                depressive symptoms.
+The model indicates that you may have some factors associated with
+depressive symptoms.
 
-                **Recommendations:** Pay attention to changes in your mood and daily 
-                functioning, maintain regular sleep and eating habits, use appropriate 
-                stress-management strategies, and consider consulting your university 
-                counseling center if emotional distress persists.
-                """
+**Recommendations:** Pay attention to changes in your mood and daily
+functioning, maintain regular sleep and eating habits, and use appropriate
+stress-management strategies. Consider contacting your university
+counseling center if emotional distress persists.
+"""
             )
 
         elif risk_level == "Moderate Risk":
             st.warning(
                 """
-                ⚠️ **Current status: Further assessment is recommended**
+⚠️ **Current status: Further assessment is recommended**
 
-                The model indicates a moderately elevated risk of depressive symptoms.
+The model indicates a moderately elevated estimated risk of depressive
+symptoms.
 
-                **Recommendations:** Consider contacting your university counseling 
-                center or a qualified mental health professional for a comprehensive 
-                assessment. You may also benefit from discussing your situation with 
-                a trusted family member, friend, teacher, or counselor.
-                """
+**Recommendations:** Consider contacting your university counseling
+center or a qualified mental health professional for a comprehensive
+assessment. You may also discuss your situation with a trusted family
+member, friend, teacher, or counselor.
+"""
             )
 
         else:
             st.error(
                 """
-                🚨 **Current status: Prompt professional support is recommended**
+🚨 **Current status: Prompt professional support is recommended**
 
-                The model indicates a relatively high risk of depressive symptoms.
+The model indicates a relatively high estimated risk of depressive
+symptoms.
 
-                **Recommendations:** Please contact your university counseling center 
-                or a qualified mental health professional as soon as possible for a 
-                comprehensive assessment and appropriate support. You are also encouraged 
-                to inform a trusted family member, friend, teacher, or counselor about 
-                your current situation.
-                """
+**Recommendations:** Please contact your university counseling center
+or a qualified mental health professional as soon as possible for a
+comprehensive assessment and appropriate support. You are also encouraged
+to inform a trusted family member, friend, teacher, or counselor.
+"""
             )
 
 
@@ -430,57 +452,58 @@ if submitted and model is not None:
 
             feature_importances = model.feature_importances_
 
-            importance_df = pd.DataFrame(
-                {
-                    "Predictive Factor": feature_names,
-                    "Importance": feature_importances
-                }
-            ).sort_values(
-                by="Importance",
-                ascending=True
-            )
+            if len(feature_importances) == len(feature_names):
 
-            st.subheader("Global Predictor Importance")
+                importance_df = pd.DataFrame(
+                    {
+                        "Predictive Factor": feature_names,
+                        "Importance": feature_importances
+                    }
+                ).sort_values(
+                    by="Importance",
+                    ascending=True
+                )
 
-            st.caption(
-                """
-                This chart shows the overall importance of each predictor in the 
-                trained model. It does not represent the contribution of each factor 
-                to this individual prediction.
-                """
-            )
+                st.subheader("Global Predictor Importance")
 
-            fig_importance = px.bar(
-                importance_df,
-                x="Importance",
-                y="Predictive Factor",
-                orientation="h",
-                title="Overall Importance of Predictors in the Model",
-                labels={
-                    "Importance": "Feature Importance",
-                    "Predictive Factor": "Predictive Factor"
-                },
-                color="Importance",
-                color_continuous_scale="Blues"
-            )
+                st.caption(
+                    "This chart shows the overall importance of each predictor "
+                    "in the trained model. It does not represent the contribution "
+                    "of each factor to this individual prediction."
+                )
 
-            fig_importance.update_layout(
-                showlegend=False,
-                coloraxis_showscale=False,
-                title_x=0.5,
-                yaxis_title=None
-            )
+                fig_importance = px.bar(
+                    importance_df,
+                    x="Importance",
+                    y="Predictive Factor",
+                    orientation="h",
+                    title="Overall Importance of Predictors in the Model",
+                    labels={
+                        "Importance": "Feature Importance",
+                        "Predictive Factor": "Predictive Factor"
+                    },
+                    color="Importance",
+                    color_continuous_scale="Blues"
+                )
 
-            st.plotly_chart(
-                fig_importance,
-                use_container_width=True
-            )
+                fig_importance.update_layout(
+                    showlegend=False,
+                    coloraxis_showscale=False,
+                    title_x=0.5,
+                    yaxis_title=None,
+                    margin=dict(l=20, r=20, t=60, b=20)
+                )
+
+                st.plotly_chart(
+                    fig_importance,
+                    use_container_width=True
+                )
 
 
         # ====================================================
-        # 11. Risk probability distribution
+        # 11. Risk probability position chart
         # ====================================================
-        st.subheader("Risk Probability Distribution")
+        st.subheader("Risk Probability Position")
 
         risk_ranges = [
             "No Risk (0.00–0.42)",
@@ -489,110 +512,53 @@ if submitted and model is not None:
             "High Risk (0.76–1.00)"
         ]
 
-        risk_probabilities = [
+        interval_values = [
             min(prob_depressive_symptoms, 0.42),
-
-            (
-                max(
-                    0,
-                    min(prob_depressive_symptoms - 0.42, 0.18)
-                )
-                if prob_depressive_symptoms > 0.42
-                else 0
+            max(
+                0,
+                min(prob_depressive_symptoms, 0.60) - 0.42
             ),
-
-            (
-                max(
-                    0,
-                    min(prob_depressive_symptoms - 0.60, 0.16)
-                )
-                if prob_depressive_symptoms > 0.60
-                else 0
+            max(
+                0,
+                min(prob_depressive_symptoms, 0.76) - 0.60
             ),
-
-            (
-                max(
-                    0,
-                    prob_depressive_symptoms - 0.76
-                )
-                if prob_depressive_symptoms > 0.76
-                else 0
+            max(
+                0,
+                prob_depressive_symptoms - 0.76
             )
         ]
-
-        # Identify the current risk interval
-        if prob_depressive_symptoms < 0.42:
-            current_risk_index = 0
-
-        elif prob_depressive_symptoms < 0.60:
-            current_risk_index = 1
-
-        elif prob_depressive_symptoms < 0.76:
-            current_risk_index = 2
-
-        else:
-            current_risk_index = 3
-
-        # Adjust bars to display cumulative risk probability
-        for index in range(len(risk_probabilities)):
-
-            if index == current_risk_index:
-                interval_start = (
-                    0
-                    if index == 0
-                    else 0.42
-                    if index == 1
-                    else 0.60
-                    if index == 2
-                    else 0.76
-                )
-
-                risk_probabilities[index] = (
-                    prob_depressive_symptoms - interval_start
-                )
-
-            elif index < current_risk_index:
-                risk_probabilities[index] = (
-                    0.42
-                    if index == 0
-                    else 0.18
-                    if index == 1
-                    else 0.16
-                )
-
-            else:
-                risk_probabilities[index] = 0
 
         probability_df = pd.DataFrame(
             {
                 "Risk Category": risk_ranges,
-                "Probability Interval": risk_probabilities
+                "Probability Portion": interval_values
             }
         )
 
         fig_probability = px.bar(
             probability_df,
-            x="Probability Interval",
+            x="Probability Portion",
             y="Risk Category",
             orientation="h",
-            title="Distribution of the Predicted Risk Probability",
+            title="Position of the Predicted Probability Across Risk Intervals",
             labels={
-                "Probability Interval": "Probability",
+                "Probability Portion": "Probability Portion",
                 "Risk Category": "Risk Category"
             },
             color="Risk Category",
-            color_discrete_sequence=[
-                "green",
-                "blue",
-                "orange",
-                "red"
-            ]
+            color_discrete_map={
+                "No Risk (0.00–0.42)": "green",
+                "Low Risk (0.42–0.60)": "blue",
+                "Moderate Risk (0.60–0.76)": "orange",
+                "High Risk (0.76–1.00)": "red"
+            }
         )
 
         fig_probability.update_layout(
             title_x=0.5,
             showlegend=False,
-            yaxis_title=None
+            yaxis_title=None,
+            margin=dict(l=20, r=20, t=60, b=20)
         )
 
         st.plotly_chart(
@@ -631,22 +597,23 @@ if submitted and model is not None:
 
         st.caption(
             """
-            **Disclaimer:** This assessment tool uses a machine learning model to 
-            estimate the risk of depressive symptoms. The result is intended for 
-            screening and research purposes only and does not constitute a clinical 
-            diagnosis or replace an assessment by a qualified mental health professional.
+**Disclaimer:** This assessment tool uses a machine learning model to
+estimate the risk of depressive symptoms. The result is intended for
+screening and research purposes only. It does not constitute a clinical
+diagnosis and cannot replace an assessment by a qualified mental health
+professional.
 
-            If you are experiencing persistent emotional distress, impaired daily 
-            functioning, thoughts of self-harm, or an immediate mental health crisis, 
-            please seek professional or emergency assistance promptly.
-            """
+If you are experiencing persistent emotional distress, impaired daily
+functioning, thoughts of self-harm, or an immediate mental health crisis,
+please seek professional or emergency assistance promptly.
+"""
         )
 
 
-    except ValueError:
+    except ValueError as error:
         st.error(
-            "The input data are incorrectly formatted. Please verify that all "
-            "questions have been answered correctly."
+            "The input data are incorrectly formatted. "
+            f"Error details: {str(error)}"
         )
 
     except Exception as error:
@@ -657,8 +624,9 @@ if submitted and model is not None:
 
 elif submitted and model is None:
     st.error(
-        "The model could not be loaded, and the assessment cannot be completed. "
-        "Please verify that the model file exists in the application directory."
+        "The model could not be loaded, and the assessment cannot be "
+        "completed. Please verify that the model file and all required "
+        "packages are available."
     )
 
 
@@ -671,21 +639,21 @@ with st.sidebar:
 
     st.markdown(
         """
-        This machine-learning-based prediction model was developed within a 
-        social ecological systems framework to estimate the risk of depressive 
-        symptoms among college students.
+This machine-learning-based prediction model was developed within a
+social ecological systems framework to estimate the risk of depressive
+symptoms among college students.
 
-        The tool is intended to support early risk identification and mental 
-        health screening rather than clinical diagnosis.
+The tool is intended to support early risk identification and mental
+health screening rather than clinical diagnosis.
 
-        **Assessment dimensions include:**
+**Assessment dimensions include:**
 
-        - Academic factors
-        - Family relationships and support
-        - Campus and class environment
-        - Lifestyle behaviors
-        - Sleep and psychological well-being
-        """
+- Academic factors
+- Family relationships and support
+- Campus and class environment
+- Lifestyle behaviors
+- Sleep and psychological well-being
+"""
     )
 
     st.markdown("---")
@@ -694,15 +662,16 @@ with st.sidebar:
 
     st.markdown(
         """
-        - **No Risk:** probability below 0.42
-        - **Low Risk:** probability from 0.42 to below 0.60
-        - **Moderate Risk:** probability from 0.60 to below 0.76
-        - **High Risk:** probability of 0.76 or higher
-        """
+- **No Risk:** probability below 0.42
+- **Low Risk:** probability from 0.42 to below 0.60
+- **Moderate Risk:** probability from 0.60 to below 0.76
+- **High Risk:** probability of 0.76 or higher
+"""
     )
 
     st.markdown("---")
 
     st.caption(
-        "This tool is intended for research and preliminary screening purposes only."
+        "This tool is intended for research and preliminary "
+        "screening purposes only."
     )
